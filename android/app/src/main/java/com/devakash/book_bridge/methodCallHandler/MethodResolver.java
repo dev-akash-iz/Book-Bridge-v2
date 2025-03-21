@@ -28,6 +28,15 @@ public class MethodResolver implements MethodChannel.MethodCallHandler {
 				PdfGlobalStore.isRequestedForCancel=true;
 				PdfGlobalStore.Methodresult=result;
 				break;
+			case "combinePdf":
+				if(PdfGlobalStore.detailedDataOFprocessedPDF==null){
+					result.success(false);
+				}else {
+					PDFservices.splitPDFpagesToBundle((String) call.arguments,result);
+					//result.success(true);
+				}
+				PdfGlobalStore.Methodresult=result;
+				break;
 			default:
 				result.notImplemented();
 				break;

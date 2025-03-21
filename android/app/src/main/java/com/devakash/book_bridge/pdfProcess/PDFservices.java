@@ -1,7 +1,12 @@
 package com.devakash.book_bridge.pdfProcess;
 
+import android.graphics.pdf.PdfDocument;
+
 import com.devakash.book_bridge.pdfProcess.utils.CommonProgressData;
+import com.devakash.book_bridge.pdfProcess.utils.DetailedDataOFprocessedPDF;
 import com.devakash.book_bridge.pdfProcess.utils.PageOperationOutcome;
+import com.devakash.book_bridge.pdfProcess.utils.PdfPageBundleInfo;
+import com.devakash.book_bridge.pdfProcess.utils.commonPageBundlerHealper;
 import com.tom_roush.pdfbox.io.MemoryUsageSetting;
 import com.tom_roush.pdfbox.pdmodel.PDDocument;
 import com.tom_roush.pdfbox.pdmodel.PDPage;
@@ -10,6 +15,13 @@ import com.tom_roush.pdfbox.text.PDFTextStripper;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -24,7 +36,10 @@ public class PDFservices {
 				Runtime.getRuntime().gc();
 				boolean processResult=splitPDFpagesToBundleHelperSync(path);
 				PdfGlobalStore.RunOnUiThread(()->{
-						result.success(processResult);
+					Map<String, Object> data = new HashMap<>(3);
+					data.put("result", PdfGlobalStore.detailedDataOFprocessedPDF.getSuccesFullBundledUrl());
+					data.put("status", processResult);
+						result.success(data);
 				});
 				// PDF processing logic here
 			} catch (Exception e) {
@@ -44,14 +59,132 @@ public class PDFservices {
 		});
 	}
 
+
+
+	public static void combinePdfBundlesToSinglePdf(List<String> transulatedpath, MethodChannel.Result result) {
+		ExecutorService executor = Executors.newSingleThreadExecutor();
+		executor.submit(() -> {
+			try {
+				Runtime.getRuntime().gc();
+				boolean processResult=combinePdfBundlesToSinglePdfHealperSync(transulatedpath);
+				PdfGlobalStore.RunOnUiThread(()->{
+					Map<String, Object> data = new HashMap<>(3);
+					data.put("result", PdfGlobalStore.detailedDataOFprocessedPDF.getSuccesFullBundledUrl());
+					data.put("status", processResult);
+					result.success(data);
+				});
+				// PDF processing logic here
+			} catch (Exception e) {
+				System.out.println(e);
+				System.out.println("other way errro");
+			}catch (OutOfMemoryError e) {
+				System.out.println(e);
+				System.out.println("out of meansoryyyyy");
+			} finally {
+				Runtime.getRuntime().gc();
+				executor.shutdown();
+				if(PdfGlobalStore.Methodresult != null){
+					PdfGlobalStore.Methodresult.success(false);
+				}
+
+			}
+		});
+	}
+	public  static  <ANY_TYPE> ANY_TYPE getIndexValue(List<ANY_TYPE> listData,int index) {
+       if(listData!=null && index < listData.size()){
+         return listData.get(index);
+	   }
+	   return  null;
+	}
+
+	public  static  <ANY_TYPE> boolean addValueToIndex(List<ANY_TYPE> listData,int index ,ANY_TYPE data) {
+		if(listData!=null && index < listData.size()){
+			listData.set(index,data);
+			return true;
+		}
+		return  false;
+	}
+
+	public static PDDocument loadPdfFromCache(int index,List<String> transulatedpath, List<PDDocument> cacheOFLoadedPdf,List<Boolean> isTryLoadedPDF) {
+		boolean result = Boolean.TRUE.equals(getIndexValue(isTryLoadedPDF, index)); // check is it is already loaded
+		if(result){
+			PDDocument cachedPdf= getIndexValue(cacheOFLoadedPdf,index);
+            if(cachedPdf!=null){
+				return  cachedPdf;
+			}
+			return  null;
+		}else {
+			String path = getIndexValue(transulatedpath,index);
+			if(path!=null){
+				File file = new File(path);
+				PDDocument document = loadPdf(file);
+				cacheOFLoadedPdf.add(index,document);
+				isTryLoadedPDF.add(index,true);
+				return  document;
+			}
+			return  null;
+		}
+
+	}
+	public static boolean combinePdfBundlesToSinglePdfHealperSync(List<String> transulatedpath) {
+		DetailedDataOFprocessedPDF combinedetail = PdfGlobalStore.detailedDataOFprocessedPDF;
+		CommonProgressData progress = new CommonProgressData(combinedetail.getEachPageinBundleInfo().size());
+		progressCallbackToDart(5, "Initializing pdf from given path");
+
+		List<Boolean> isTryLoadedPDF = new ArrayList<>(Collections.nCopies(transulatedpath.size(), false));
+		List<PDDocument> transulatedPdfCacheStorage =new ArrayList<>(transulatedpath.size());
+
+		PDDocument finalOutPut = new PDDocument();
+		PDDocument failedPdfPages =null;
+		boolean tryedToLoadFailedPage = false;
+		for (int i=0;i<combinedetail.getEachPageinBundleInfo().size();i++){
+			PdfPageBundleInfo eachPage= combinedetail.getEachPageinBundleInfo().get(i);
+			if(eachPage.isBundledORnot()){
+				PDDocument transulatedPdf =loadPdfFromCache(eachPage.getBundleNumber(),transulatedpath,transulatedPdfCacheStorage,isTryLoadedPDF);
+				PDPage result =getPage(transulatedPdf,eachPage.getPageNoInBundle());
+				if(result!=null){
+					finalOutPut.addPage(result);
+				}
+			}else{
+				if(failedPdfPages!=null){
+					PDPage result =getPage(failedPdfPages,eachPage.getPageNoInBundle());
+					if(result!=null){
+						finalOutPut.addPage(result);
+					}
+				}else if(!tryedToLoadFailedPage){
+					if(combinedetail.getFailedALLPageInOneBundleUrl()!=null){
+						File file = new File(combinedetail.getFailedALLPageInOneBundleUrl());
+						failedPdfPages = loadPdf(file);
+					}
+					tryedToLoadFailedPage=true;
+				}
+
+			}
+		}
+		//loadPdfFromCache();
+
+		File file =  PdfGlobalStore.savePdfToDisk(finalOutPut,"Combined_"+"example.pdf");
+		for (PDDocument cleanupPdfobject: transulatedPdfCacheStorage) {
+			close(cleanupPdfobject);
+		}
+		close(failedPdfPages);
+
+
+		return true;
+	}
+
 	public static boolean splitPDFpagesToBundleHelperSync(String path) {
-		progressCallbackToDart(5, "LOOP NUMBER");
+		File file = new File(path);
+        String dir = file.getParent();
+		String fileName = file.getName();
 
-		if(checkForCancel(null)) return false;
+		progressCallbackToDart(5, "Initializing pdf from given path");
 
-		PDDocument document = loadPdf(path);
+		if(checkForCancel(null)) return false; //check for cancel signal,
 
-		if(checkForCancel(document)) return false;
+		PDDocument document = loadPdf(file);
+
+		if(checkForCancel(document)) return false; //check for cancel signal,
 
 		if (document == null) {
 			return false;
@@ -64,43 +197,86 @@ public class PDFservices {
 		int sliceNumber = 0;
 		long currentSliceSize = 0;
 
-		if(checkForCancel(document)) return false;
-
+		if(checkForCancel(document)) return false; //check for cancel signal,
 
 		PdfGlobalStore.pdfCallbackToFlutter(progress.updateOtherPdfProgress(50), "LOOP NUMBER");
+
+
+		/********
+		 *  intalise the needed things for storing pdf datas
+		 */
+
+		commonPageBundlerHealper bundlerHealper =new commonPageBundlerHealper(fileName,OriginalPages.getCount());
+
+//		PDDocument succesFullpagePdfBundle = newPDF();
+//		short currentPDFBundleNo=0;
+//		int succesfullyBundledPageNumber = -1;
+		long bundledPdfTotalSize = 0;
+//		List<String> SuccesFullBundledSavedLocation = new ArrayList<String>();
+//		PDDocument failedPdfPageBundleObject = newPDF();
+//		int failedBundledCurrPageNumber = -1;
+//		 List<PdfPageBundleInfo> eachPageinBundleInfo = new ArrayList<PdfPageBundleInfo>();
+
+		/********/
+
 
 		for (int i = 0; i < progress.totalPdfPages; i++) {
 			long startTime = System.nanoTime(); // More precise timing
 
-			if(checkForCancel(document)) return false;
-
 			PDPage originalPage = OriginalPages.get(i);
-			if(checkForCancel(document)) return false;
+			if(checkForCancel(document)) return false; //check for cancel signal,
 
 			PageOperationOutcome currentPageCommonInfo = commonOperationOnSinglePage(originalPage);
 
 			if (currentPageCommonInfo.isRedable && currentPageCommonInfo.size < PdfGlobalStore.getPdfSplitSize()) {
 
+				if(bundledPdfTotalSize + currentPageCommonInfo.size < PdfGlobalStore.getPdfSplitSize()
+						&& bundlerHealper.getSuccessfulPageCount() < PdfGlobalStore.pdfSplitByPage){
+
+					bundlerHealper.addNewValidPage(originalPage);
+				}else {
+					bundlerHealper.saveCurrentValidPdfBundle();
+					bundlerHealper.addNewValidPage(originalPage);
+				}
+
 			} else {
-				//failed pdf store this object into so recreate
+				bundlerHealper.addNewInValidPage(originalPage); //failed pdf store this object into so recreate
 			}
 
 
 			PdfGlobalStore.pdfCallbackToFlutter(progress.updatePdfProcessingProgress(i), "LOOP NUMBER");
-			long end=System.currentTimeMillis();
+			long end = System.currentTimeMillis();
 			long elapsedTime = (System.nanoTime() - startTime) / 1_000_000_000; // Convert to seconds
 
-			if (elapsedTime > 10) {
+			if (elapsedTime >= 5) {// in second
 				throw new RuntimeException("Potential memory issue: Page processing took longer than 20 seconds");
 			}
 		}
-		if(checkForCancel(document)) return false;
+
+		PdfGlobalStore.pdfCallbackToFlutter(progress.updateOtherPdfProgress(75), "LOOP NUMBER");
+
+		bundlerHealper.saveCurrentValidPdfBundle();
+
+		PdfGlobalStore.pdfCallbackToFlutter(progress.updateOtherPdfProgress(85), "LOOP NUMBER");
+
+		bundlerHealper.saveInValidPdfBundle();
+
+		System.out.println(bundlerHealper.getFinalFullPDFDetail().getEachPageinBundleInfo());
+		System.out.println(bundlerHealper.getFinalFullPDFDetail().getEachPageinBundleInfo().toString());
+
+
+		PdfGlobalStore.pdfCallbackToFlutter(progress.updateOtherPdfProgress(95), "LOOP NUMBER");
+
+		if(checkForCancel(document)) return false; //check for cancel signal,
 
 		PdfGlobalStore.pdfCallbackToFlutter(progress.updateOtherPdfProgress(100), "LOOP NUMBER");
 		//int pageNumber = document.getNumberOfPages();
 		close(document);
+		PdfGlobalStore.detailedDataOFprocessedPDF = bundlerHealper.getFinalFullPDFDetail();
 		return true;
 	}
+
+
 
 
 	public static PageOperationOutcome commonOperationOnSinglePage(PDPage originalPage) {
@@ -145,9 +321,9 @@ public class PDFservices {
 		return false;
 	}
 
-	public static PDDocument  loadPdf(String filePath){
+	public static PDDocument  loadPdf(File filePath){
 		try {
-			return PDDocument.load(new File(filePath), MemoryUsageSetting.setupTempFileOnly());
+			return PDDocument.load(filePath, MemoryUsageSetting.setupTempFileOnly());
 		} catch (Exception e) {
 			return null;
 		}catch (OutOfMemoryError e) {
@@ -158,6 +334,17 @@ public class PDFservices {
 
 	public static PDDocument  newPDF(){
 			return new PDDocument();
+	}
+
+	public static void  savePdf(PDDocument pdfDocument,String name){
+		savePdfToDisk(pdfDocument,name);
+	}
+
+	public static void  savePdf(PDDocument pdfDocument,String name,int totalPage){
+		if(totalPage>-1){
+			savePdfToDisk(pdfDocument,name);
+		}
+
 	}
 
 	private static void close(PDDocument document){
@@ -185,6 +372,54 @@ public class PDFservices {
 
 	private  static void  progressCallbackToDart(int progress,String message){
 		PdfGlobalStore.pdfCallbackToFlutter(progress, message);
+	}
+
+	private  static  boolean addPage(PDDocument document,PDPage originalPage){
+		boolean res=false;
+
+		try {
+			if(document!=null){
+				document.addPage(originalPage);
+				res=true;
+			}
+		} catch (Exception e) {
+
+		}
+		return res;
+	}
+
+	private  static  PDPage getPage(PDDocument document,int index){
+		PDPage res=null;
+
+		try {
+			if(document!=null){
+				res=document.getPage(index);
+			}
+		} catch (Exception e) {
+
+		}
+		return res;
+	}
+
+	public static File savePdfToDisk(PDDocument pdfDocument,String name) {
+		File file = null;
+		try {
+			// Get internal storage directory (Android Context required)
+			File dir = new File("/storage/emulated/0/Download/","BookBridge");
+			if (!dir.exists()) dir.mkdirs(); // Create folder if it doesn't exist
+
+			// Define file location
+			file = new File(dir, name);
+			// Save PDF document
+			pdfDocument.save(file);
+			close(pdfDocument); // Close document after saving
+			System.out.println("PDF saved at: " + file.getAbsolutePath());
+
+		} catch (IOException e) {
+			e.printStackTrace();
+			file = null;
+		}
+		return  file;
 	}
 
 }

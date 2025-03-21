@@ -3,8 +3,10 @@ package com.devakash.book_bridge.pdfProcess;
 import android.os.Handler;
 import android.os.Looper;
 
+import com.devakash.book_bridge.pdfProcess.utils.DetailedDataOFprocessedPDF;
 import com.tom_roush.pdfbox.pdmodel.PDDocument;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -20,7 +22,9 @@ public class PdfGlobalStore {
 	private static volatile PDDocument document;
 	private static volatile long pdfSplitBySize= 9*1024*1024;
 
-	public static  volatile long pdfSplitByPage= 300;
+
+	public static  volatile DetailedDataOFprocessedPDF detailedDataOFprocessedPDF=null;
+	public static  volatile long pdfSplitByPage= 298;
 	private static  volatile  MethodChannel methodChannel=null;
 	public static  volatile boolean isRequestedForCancel=false;
 	public static  volatile MethodChannel.Result Methodresult=null;
@@ -70,6 +74,7 @@ public class PdfGlobalStore {
 	}
 
 	public static void clearCurrentLoadedPdf(){
+		PdfGlobalStore.detailedDataOFprocessedPDF=null;
 		if(document!=null){
 			try{
 				document.close();
@@ -100,6 +105,45 @@ public class PdfGlobalStore {
 			mainThreadHandler.post(runnableFunciton);
 		}
 
+	}
+
+	public static File savePdfToDisk(PDDocument pdfDocument, String name) {
+		File file = null;
+		boolean isSaved=false;
+		try {
+			// Get internal storage directory (Android Context required)
+			File dir = new File("/storage/emulated/0/Download/","BookBridge");
+			if (!dir.exists()) dir.mkdirs(); // Create folder if it doesn't exist
+
+			// Define file location
+			file = new File(dir, name);
+			// Save PDF document
+			pdfDocument.save(file);
+			isSaved=true;
+			close(pdfDocument); // Close document after saving
+			System.out.println("PDF saved at: " + file.getAbsolutePath());
+
+		} catch (IOException e) {
+
+			if(!isSaved){
+				file = null;
+			}
+			e.printStackTrace();
+		}
+		return  file;
+	}
+
+	private static void close(PDDocument document){
+		try {
+			if(document!=null){
+				document.close();
+				System.out.println("closed document");
+			}
+			Runtime.getRuntime().gc();
+			System.out.println("called gc");
+		} catch (Exception e) {
+
+		}
 	}
 
 

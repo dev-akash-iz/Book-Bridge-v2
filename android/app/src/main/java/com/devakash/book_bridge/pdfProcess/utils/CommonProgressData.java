@@ -31,6 +31,22 @@ public class CommonProgressData {
 
 	}
 
+	public CommonProgressData(int OriginalPages) {
+		//saving the total pdf page count in this object
+		totalPdfPages = ((double)OriginalPages);
+		// doing calculation to add some more to this pdf page count do that not only for loop  other progress can be sown as number
+		// so here caluctatng this with totalpdf with 20 pectage of total pdf adding both get new value
+		total_Max_Progress= totalPdfPages + PAGE_INCREMENT_PERCENTAGE/HUNDRED * totalPdfPages;
+		// here getting the pdf processing decimal reserved for pdf for loop only under 1
+		// example 200/240 gives some 0.83 so this is reserved by pdf processing for loop
+		// and other is 1-0.83 gives 0.17 like that so adding both get (1)
+		// so the idea is i caluclate the for loop progress and give a value under 0.83
+		// by index/totalPdfCount wich give some decimal value multiplised by its reserved value here is 0.83
+		// so from for loop i get 0.83 and other is get by other progress adding bothe get 0 to 1 value so multipling that with 100 give inbetween number from 0 to 100 wich indirecly look like prcentage feeling , wich can show to screen
+		totalPdfProcessingProgress = totalPdfPages/total_Max_Progress;
+		totalOtherProcessesProgress = 1 - totalPdfProcessingProgress;
+	}
+
 	public int updateOtherPdfProgress(int progress){
 		// Example: How to find 20% of a number
 		// To get a percentage, we divide by 100 because 100% means the whole number.

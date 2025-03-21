@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:book_bridge/pdfService/utils/actions_builder.dart';
 import 'package:book_bridge/pdfService/utils/file_detail.dart';
+import 'package:book_bridge/pdfService/utils/pdf_reuploded_healper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -116,8 +117,11 @@ class _BookBridgeHomeState extends State<BookBridgeHome>
 
   final ScrollController _scrollController = ScrollController();
 
+  List<PdfReuplodedHealper> pdfUploadList = [];
+  int uploadedPdfNumber = 0;
+
   static const String parentPath = '/storage/emulated/0/Download';
-  double heightOfTxt = 150;
+  double heightOfTxt = 120;
   double progress = 0.0;
   bool isConverting = false;
   bool isSwitched = false;
@@ -185,6 +189,8 @@ class _BookBridgeHomeState extends State<BookBridgeHome>
         .then((bool? result) {
       if (result != null && result) {}
       setState(() {
+        pdfUploadList = [];
+        uploadedPdfNumber = 0;
         logOutput.clear();
         isConverting = false;
         progress = 0.0;
@@ -270,21 +276,28 @@ class _BookBridgeHomeState extends State<BookBridgeHome>
   void processSelectedPdf() async {
     if (selectedFilePath != null) {
       setState(() {
+        pdfUploadList = [];
+        uploadedPdfNumber = 0;
         logOutput.clear();
         isConverting = true;
       });
       startListening();
-      _channel
-          .invokeMethod<bool>("processPdf", selectedFilePath)
-          .then((bool? data) {
+      _channel.invokeMethod("processPdf", selectedFilePath).then((data) {
         setState(() {
+          dynamic pdfLink = data["result"];
+          pdfLink?.forEach((data) {
+            pdfUploadList.add(PdfReuplodedHealper(originalPath: data));
+          });
+
+          print("check");
+          bool status = data["status"] ?? false;
           isConverting = false;
           progress = 0.0;
           showDialoge(
-            message: data ?? false
+            message: status
                 ? "splited pdf for transulate ready"
                 : "Canceled Successfully",
-            heading: data ?? false ? "Success" : "Canceled",
+            heading: status ? "Success" : "Canceled",
           );
         });
       });
@@ -293,14 +306,16 @@ class _BookBridgeHomeState extends State<BookBridgeHome>
     }
   }
 
-  void showCustomFilePicker(BuildContext Parentcontext) async {
+  void showCustomFilePicker(BuildContext Parentcontext,
+      [Function(String name)? callback]) async {
     var status = await requestStoragePermission();
     if (status) {
       showDialog(
         context: Parentcontext,
         barrierDismissible: false, // Prevent accidental closing
         builder: (contextPopup) {
-          return CustomFilePicker(parentPath, setPdfPath, contextPopup);
+          return CustomFilePicker(
+              parentPath, callback ?? setPdfPath, contextPopup);
         },
       );
     }
@@ -481,6 +496,99 @@ class _BookBridgeHomeState extends State<BookBridgeHome>
                   ],
                 ),
               ),
+              const Divider(),
+              if (pdfUploadList.isNotEmpty)
+                SizedBox(
+                  height: 350,
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 10),
+                      const Text(
+                        "Upload PDFs",
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 10),
+                      Expanded(
+                        child: ListView.separated(
+                          shrinkWrap: true,
+                          itemCount: pdfUploadList.length,
+                          separatorBuilder: (context, index) => const Divider(),
+                          itemBuilder: (context, index) {
+                            print(pdfUploadList[index].transulatedPdfUrl);
+                            print("okkk");
+                            return Card(
+                              elevation: 5,
+                              color: Colors.blue.shade100,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 16, horizontal: 20),
+                                child: ListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  title: Text(
+                                    '(${index + 1}) ${pdfUploadList[index].originalPath}',
+                                    style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.black),
+                                  ),
+                                  trailing: ElevatedButton(
+                                    onPressed: () {
+                                      showCustomFilePicker(
+                                        context,
+                                        (path) {
+                                          setState(() {
+                                            pdfUploadList[index].isReUploaded =
+                                                true;
+                                            pdfUploadList[index]
+                                                .transulatedPdfUrl = path;
+                                            uploadedPdfNumber++;
+                                          });
+                                        },
+                                      );
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.blue.shade700,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 12),
+                                    ),
+                                    child: Text(
+                                        pdfUploadList[index].isReUploaded
+                                            ? "uploaded"
+                                            : "Upload"),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      if (uploadedPdfNumber > 0 &&
+                          uploadedPdfNumber == pdfUploadList.length)
+                        Center(
+                          child: ElevatedButton(
+                            onPressed: () {},
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue.shade500,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 50, vertical: 16),
+                            ),
+                            child: const Text(
+                              "Combine",
+                              style: TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
             ],
           ),
         ),
