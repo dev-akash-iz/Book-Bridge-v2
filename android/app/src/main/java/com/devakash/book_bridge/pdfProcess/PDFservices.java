@@ -46,10 +46,10 @@ public class PDFservices {
 				// PDF processing logic here
 			} catch (Exception e) {
 				System.out.println(e);
-				System.out.println("other way errro");
+
 			}catch (OutOfMemoryError e) {
 				System.out.println(e);
-				System.out.println("out of meansoryyyyy");
+
 			} finally {
 				Runtime.getRuntime().gc();
 				executor.shutdown();
@@ -65,27 +65,24 @@ public class PDFservices {
 
 	public static void combinePdfBundlesToSinglePdf(List<String> transulatedpath, MethodChannel.Result result) {
 
-		System.out.println(transulatedpath);
-		System.out.println("code reached combine areaaa");
 
 		ExecutorService executor = Executors.newSingleThreadExecutor();
 		executor.submit(() -> {
 			try {
 				Runtime.getRuntime().gc();
 				boolean processResult=combinePdfBundlesToSinglePdfHealperSync(transulatedpath);
-//				PdfGlobalStore.RunOnUiThread(()->{
-//					Map<String, Object> data = new HashMap<>(3);
+				Map<String, Object> data = new HashMap<>(3);
+				data.put("status", processResult);
+				PdfGlobalStore.RunOnUiThread(()->{
 //					data.put("result", PdfGlobalStore.detailedDataOFprocessedPDF.getSuccesFullBundledUrl());
-//					data.put("status", processResult);
-//					result.success(data);
-//				});
+
+					result.success(data);
+				});
 				// PDF processing logic here
 			} catch (Exception e) {
 				System.out.println(e);
-				System.out.println("other way errro");
 			}catch (OutOfMemoryError e) {
 				System.out.println(e);
-				System.out.println("out of meansoryyyyy");
 			} finally {
 				Runtime.getRuntime().gc();
 				executor.shutdown();
@@ -112,16 +109,12 @@ public class PDFservices {
 	}
 
 	public static PDDocument loadPdfFromCache(int index,List<String> transulatedpath, List<PDDocument> cacheOFLoadedPdf,List<Boolean> isTryLoadedPDF) {
-		System.out.println(index+" is bundle no");
-		System.out.println(transulatedpath.toString());
-		System.out.println(isTryLoadedPDF.toString());
-		System.out.println(cacheOFLoadedPdf.toString());
-		System.out.println(getIndexValue(isTryLoadedPDF, index)+" is aleeady loaded");
+
 		boolean result = Boolean.TRUE.equals(getIndexValue(isTryLoadedPDF, index)); // check is it is already loaded
-		System.out.println(result+" is aleeady loaded 2");
+
 		if(result){
 			PDDocument cachedPdf = getIndexValue(cacheOFLoadedPdf,index);
-			System.out.println(cachedPdf+" is aleeady cachedPdf loadded from cache");
+
 			return cachedPdf;
 		}else {
 			String path = getIndexValue(transulatedpath,index);
@@ -129,7 +122,7 @@ public class PDFservices {
 			if(path!=null){
 				File file = new File(path);
 				document = loadPdf(file);
-				System.out.println("loaded pdf from file for index index "+ index+ ' '+ path);
+
 			}
 			cacheOFLoadedPdf.add(index,document);
 			isTryLoadedPDF.add(index,true);
@@ -152,42 +145,30 @@ public class PDFservices {
 		boolean tryedToLoadFailedPage = false;
 		progressCallbackToDart(progress.updateOtherPdfProgress(15), "Initializing pdf from given path");
 		for (int i=0;i<combinedetail.getEachPageinBundleInfo().size();i++){
-			System.out.println(i+" is index");
+
 			PdfPageBundleInfo eachPage= combinedetail.getEachPageinBundleInfo().get(i);
-			System.out.println("");
-			System.out.println(eachPage.toString());
-			System.out.println("");
+
 			if(eachPage.isBundledORnot()){
 				PDDocument transulatedPdf =loadPdfFromCache(eachPage.getBundleNumber(),transulatedpath,transulatedPdfCacheStorage,isTryLoadedPDF);
 				PDPage result =getPage(transulatedPdf,eachPage.getPageNoInBundle());
 				if(result!=null){
 					finalOutPut.addPage(result);
-				}else{
-					System.out.println("");
-					System.out.println(i +" Not added this page");
-					System.out.println("");
 				}
 			}else{
 				if(failedPdfPages!=null){
 					PDPage result =getPage(failedPdfPages,eachPage.getPageNoInBundle());
 					if(result!=null){
-						System.out.println("");
-						System.out.println(tryedToLoadFailedPage +" failed page loadded from cache");
-						System.out.println("");
+
 						finalOutPut.addPage(result);
 					}
 				}else if(!tryedToLoadFailedPage){
-					System.out.println("");
-					System.out.println(tryedToLoadFailedPage +" one time loading failed page");
-					System.out.println("");
+
 					if(combinedetail.getFailedALLPageInOneBundleUrl()!=null){
 						File file = new File(combinedetail.getFailedALLPageInOneBundleUrl());
 						failedPdfPages = loadPdf(file);
 						PDPage result =getPage(failedPdfPages,eachPage.getPageNoInBundle());
 						if(result!=null){
-							System.out.println("");
-							System.out.println(tryedToLoadFailedPage +" failed page loadded from one time after laoding from file");
-							System.out.println("");
+
 							finalOutPut.addPage(result);
 						}
 					}
@@ -300,8 +281,7 @@ public class PDFservices {
 
 		bundlerHealper.saveInValidPdfBundle();
 
-		System.out.println(bundlerHealper.getFinalFullPDFDetail().getEachPageinBundleInfo());
-		System.out.println(bundlerHealper.getFinalFullPDFDetail().getEachPageinBundleInfo().toString());
+
 
 
 		PdfGlobalStore.pdfCallbackToFlutter(progress.updateOtherPdfProgress(95), "LOOP NUMBER");

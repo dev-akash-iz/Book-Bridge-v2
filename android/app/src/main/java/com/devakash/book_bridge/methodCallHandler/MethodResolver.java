@@ -23,23 +23,17 @@ public class MethodResolver implements MethodChannel.MethodCallHandler {
 
 		switch (call.method) {
 			case "processPdf":
-				System.out.println("");
-				System.out.println("processPdf");
-				System.out.println("");
+
 				PdfGlobalStore.clearCurrentLoadedPdf();
 				PDFservices.splitPDFpagesToBundle((String) call.arguments,result);
 				break;
 			case "isRequestedForCancel":
-				System.out.println("");
-				System.out.println("isRequestedForCancel");
-				System.out.println("");
+
 				PdfGlobalStore.isRequestedForCancel=true;
 				PdfGlobalStore.Methodresult=result;
 				break;
 			case "combinePdf":
-				System.out.println("");
-				System.out.println("combinePdf");
-				System.out.println("");
+
 				if(PdfGlobalStore.detailedDataOFprocessedPDF==null){
 					result.success(false);
 				}else {

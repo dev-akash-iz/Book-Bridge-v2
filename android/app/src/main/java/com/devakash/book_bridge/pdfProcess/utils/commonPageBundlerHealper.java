@@ -94,8 +94,6 @@ public class commonPageBundlerHealper {
 	}
 
 	public DetailedDataOFprocessedPDF getFinalFullPDFDetail(){
-
-		System.out.println(successfulPdfPaths.toString());
 		return  new DetailedDataOFprocessedPDF(successfulPdfPaths,failedPdfPaths,"",pageBundleInfoList);
 	}
 

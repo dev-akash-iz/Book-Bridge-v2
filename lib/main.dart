@@ -287,7 +287,15 @@ class _BookBridgeHomeState extends State<BookBridgeHome>
       });
       startListening();
       _channel.invokeMethod("combinePdf", uploadFiLeUrl).then((data) {
-        // setState(() {});
+        setState(() {
+          bool status = data["status"] ?? false;
+          showDialoge(
+            message: status ? "combined succesfully" : "failed to combine",
+            heading: status ? "Success" : "failed",
+          );
+          logOutput.clear();
+          isConverting = false;
+        });
       });
     } else {
       showDialoge(message: "Please upload to combine pdf");
@@ -355,7 +363,7 @@ class _BookBridgeHomeState extends State<BookBridgeHome>
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          "Video Ctool",
+          "Book Bridge",
           style: TextStyle(color: Colors.white),
         ),
         backgroundColor: Colors.blue.shade700,
@@ -428,7 +436,7 @@ class _BookBridgeHomeState extends State<BookBridgeHome>
                           icon: const Icon(Icons.play_circle),
                           label: isConverting
                               ? const Text("Cancel")
-                              : const Text("Start"),
+                              : const Text("Bundle pdf"),
                         ),
                       ),
                       const SizedBox(
@@ -520,7 +528,7 @@ class _BookBridgeHomeState extends State<BookBridgeHome>
               const Divider(),
               if (pdfUploadList.isNotEmpty)
                 SizedBox(
-                  height: 350,
+                  height: 250,
                   child: Column(
                     children: [
                       const SizedBox(height: 10),
@@ -593,26 +601,82 @@ class _BookBridgeHomeState extends State<BookBridgeHome>
                         ),
                       ),
                       const SizedBox(height: 10),
-                      if (uploadedPdfNumber > 0 &&
-                          uploadedPdfNumber == pdfUploadList.length)
-                        Center(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              combinePdf();
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue.shade500,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 50, vertical: 16),
+                      Center(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                // onPressed:
+                                //     isConverting ? cancelConversion : startConversion,
+                                onPressed: () {
+                                  setState(() {
+                                    pdfUploadList = [];
+                                    uploadedPdfNumber = 0;
+                                    logOutput.clear();
+                                    isConverting = false;
+                                    progress = 0.0;
+                                  });
+                                },
+                                icon: const Icon(Icons.cancel_outlined),
+                                label: const Text("Cancel Merge"),
+                              ),
                             ),
-                            child: const Text(
-                              "Combine",
-                              style: TextStyle(
-                                  fontSize: 12, fontWeight: FontWeight.bold),
-                            ),
-                          ),
+                            const SizedBox(width: 20),
+                            if (uploadedPdfNumber > 0 &&
+                                uploadedPdfNumber == pdfUploadList.length)
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  // onPressed:
+                                  //     isConverting ? cancelConversion : startConversion,
+                                  onPressed: () {
+                                    combinePdf();
+                                  }, // Disables the button when condition is not met
+                                  icon: const Icon(Icons.play_circle),
+                                  label: const Text("Merge"),
+                                ),
+                              ),
+
+                            // ElevatedButton(
+                            //   onPressed: () {
+                            //     // Cancel action logic
+                            //     //cancelCombine();
+                            //   },
+                            //   style: ElevatedButton.styleFrom(
+                            //     backgroundColor: Colors.red.shade500,
+                            //     foregroundColor: Colors.white,
+                            //     padding: const EdgeInsets.symmetric(
+                            //         horizontal: 40, vertical: 16),
+                            //   ),
+                            //   child: const Text(
+                            //     "Cancel Combine",
+                            //     style: TextStyle(
+                            //         fontSize: 12, fontWeight: FontWeight.bold),
+                            //   ),
+                            // ),
+                            // Space between buttons
+                            // ElevatedButton(
+                            //   onPressed: (uploadedPdfNumber > 0 &&
+                            //           uploadedPdfNumber == pdfUploadList.length)
+                            //       ? () {
+                            //           combinePdf();
+                            //         }
+                            //       : null, // Disables the button when condition is not met
+                            //   style: ElevatedButton.styleFrom(
+                            //     backgroundColor: Colors.blue.shade500,
+                            //     foregroundColor: Colors.white,
+                            //     padding: const EdgeInsets.symmetric(
+                            //         horizontal: 50, vertical: 16),
+                            //   ),
+                            //   child: const Text(
+                            //     "Combine",
+                            //     style: TextStyle(
+                            //         fontSize: 12, fontWeight: FontWeight.bold),
+                            //   ),
+                            // ),
+                          ],
                         ),
+                      ),
                     ],
                   ),
                 ),
