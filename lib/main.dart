@@ -273,6 +273,27 @@ class _BookBridgeHomeState extends State<BookBridgeHome>
     });
   }
 
+  void combinePdf() async {
+    if (pdfUploadList.isNotEmpty) {
+      List<String> uploadFiLeUrl = [];
+      pdfUploadList.forEach((data) {
+        uploadFiLeUrl.add(data.transulatedPdfUrl!);
+      });
+      setState(() {
+        //pdfUploadList = [];
+        //uploadedPdfNumber = 0;
+        logOutput.clear();
+        isConverting = true;
+      });
+      startListening();
+      _channel.invokeMethod("combinePdf", uploadFiLeUrl).then((data) {
+        // setState(() {});
+      });
+    } else {
+      showDialoge(message: "Please upload to combine pdf");
+    }
+  }
+
   void processSelectedPdf() async {
     if (selectedFilePath != null) {
       setState(() {
@@ -541,11 +562,15 @@ class _BookBridgeHomeState extends State<BookBridgeHome>
                                         context,
                                         (path) {
                                           setState(() {
+                                            if (!pdfUploadList[index]
+                                                .isReUploaded) {
+                                              uploadedPdfNumber++;
+                                            }
+
                                             pdfUploadList[index].isReUploaded =
                                                 true;
                                             pdfUploadList[index]
                                                 .transulatedPdfUrl = path;
-                                            uploadedPdfNumber++;
                                           });
                                         },
                                       );
@@ -572,7 +597,9 @@ class _BookBridgeHomeState extends State<BookBridgeHome>
                           uploadedPdfNumber == pdfUploadList.length)
                         Center(
                           child: ElevatedButton(
-                            onPressed: () {},
+                            onPressed: () {
+                              combinePdf();
+                            },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.blue.shade500,
                               foregroundColor: Colors.white,

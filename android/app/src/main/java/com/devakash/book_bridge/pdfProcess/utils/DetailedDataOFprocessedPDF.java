@@ -33,4 +33,12 @@ public class DetailedDataOFprocessedPDF {
 	public List<PdfPageBundleInfo> getEachPageinBundleInfo() {
 		return eachPageinBundleInfo;
 	}
+
+	public void clear(){
+		this.failedALLPageInOneBundleUrl=null;
+		this.eachPageinBundleInfo=null;
+		this.OriginalPdfUrl=null;
+		this.SuccesFullBundledUrl=null;
+	}
+
 }

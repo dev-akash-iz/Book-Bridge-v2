@@ -19,7 +19,7 @@ import io.flutter.plugin.common.MethodChannel;
 public class PdfGlobalStore {
 	public static  volatile String pdfProcessName="";
 	private static  volatile boolean anyPdfProcessing=false;
-	private static volatile PDDocument document;
+//	private static volatile PDDocument document;
 	private static volatile long pdfSplitBySize= 9*1024*1024;
 
 
@@ -57,9 +57,9 @@ public class PdfGlobalStore {
 		return anyPdfProcessing;
 	}
 
-	public static PDDocument getDocument() {
-		return document;
-	}
+//	public static PDDocument getDocument() {
+//		return document;
+//	}
 
 	public static long getPdfSplitSize() {
 		return pdfSplitBySize;
@@ -69,20 +69,15 @@ public class PdfGlobalStore {
 		PdfGlobalStore.anyPdfProcessing=status;
 	}
 
-	public static void setCurrentLoadedDocument(PDDocument document) {
-		PdfGlobalStore.document = document;
-	}
+//	public static void setCurrentLoadedDocument(PDDocument document) {
+//		PdfGlobalStore.document = document;
+//	}
 
 	public static void clearCurrentLoadedPdf(){
-		PdfGlobalStore.detailedDataOFprocessedPDF=null;
-		if(document!=null){
-			try{
-				document.close();
-				isRequestedForCancel=false;
-				document=null;
-			} catch (IOException e) {
-			}
+		if(detailedDataOFprocessedPDF!=null){
+			detailedDataOFprocessedPDF.clear();
 		}
+		isRequestedForCancel=false;
 	}
 
 	public static void pdfCallbackToFlutter(int progress, String Status) {
