@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:book_bridge/pdfService/utils/actions_builder.dart';
-import 'package:book_bridge/pdfService/utils/file_detail.dart';
-import 'package:book_bridge/pdfService/utils/pdf_reuploded_healper.dart';
+import 'package:bookbridge/pdfService/utils/actions_builder.dart';
+import 'package:bookbridge/pdfService/utils/file_detail.dart';
+import 'package:bookbridge/pdfService/utils/pdf_reuploded_healper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -53,12 +53,11 @@ class BookBridgeHome extends StatefulWidget {
 
 Future<bool> requestStoragePermission() async {
   if (Platform.isAndroid) {
-    // Get Android version
     final androidInfo = await DeviceInfoPlugin().androidInfo;
-    int sdkInt = androidInfo.version.sdkInt; // SDK version as an integer
+    int sdkInt = androidInfo.version.sdkInt;
 
     if (sdkInt >= 30) {
-      // Android 11 (SDK 30) or higher
+      // ✅ Android 11 and above -> Manage External Storage
       if (await Permission.manageExternalStorage.isGranted) {
         print("Manage External Storage permission already granted.");
         return true;
@@ -68,28 +67,35 @@ Future<bool> requestStoragePermission() async {
           print("Manage External Storage permission granted.");
           return true;
         } else {
+          print("Manage External Storage permission denied.");
           await openAppSettings();
           return false;
         }
       }
     } else {
-      // For Android versions lower than 11
-      if (await Permission.storage.isGranted) {
-        print("Storage permission already granted.");
+      // ✅ Android 10 and below -> Read + Write
+      bool readGranted = await Permission.storage.isGranted;
+      bool writeGranted = await Permission.accessMediaLocation.isGranted;
+      // Note: some devices also gate "write" behind media location on <29
+
+      if (readGranted && writeGranted) {
+        print("Read & Write permissions already granted.");
         return true;
       } else {
-        var storageStatus = await Permission.storage.request();
-        if (storageStatus.isGranted) {
-          print("Storage permission granted.");
+        var readStatus = await Permission.storage.request();
+        var writeStatus = await Permission.accessMediaLocation.request();
+
+        if (readStatus.isGranted && writeStatus.isGranted) {
+          print("Read & Write permissions granted.");
           return true;
         } else {
-          print("Storage permission denied.");
+          print("Read or Write permission denied.");
           return false;
         }
       }
     }
   } else {
-    // For non-Android platforms
+    // Non-Android (iOS, Web, etc.)
     print("Storage permission not required on this platform.");
     return true;
   }
@@ -112,7 +118,7 @@ String bytesToSizeFormate(double totalBytes, [String? include = ""]) {
 class _BookBridgeHomeState extends State<BookBridgeHome>
     with WidgetsBindingObserver {
   final MethodChannel _channel =
-      const MethodChannel('com.devakash.book_bridge/initalize');
+      const MethodChannel('com.devakash.bookbridge/initalize');
   StreamSubscription? _subscription;
 
   final ScrollController _scrollController = ScrollController();
@@ -276,9 +282,9 @@ class _BookBridgeHomeState extends State<BookBridgeHome>
   void combinePdf() async {
     if (pdfUploadList.isNotEmpty) {
       List<String> uploadFiLeUrl = [];
-      pdfUploadList.forEach((data) {
+      for (var data in pdfUploadList) {
         uploadFiLeUrl.add(data.transulatedPdfUrl!);
-      });
+      }
       setState(() {
         //pdfUploadList = [];
         //uploadedPdfNumber = 0;
