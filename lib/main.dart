@@ -14,19 +14,8 @@ void main() async {
 }
 
 const List<Widget> hint = [
-  SelectableText(
-      "• In your command, use the key @f_ to automatically replace it with the selected file's URL. \nexample:\n     (@f_ => '/0/download/input.mp4')\n"),
-  SelectableText(
-      "• For the output location, use the key @s_ to replace it with the download location '/0/download/' on your Android device. \nexample:\n     (@s_output.mp4 => '/0/download/output.mp4')\n"),
-  SelectableText(
-      "• Use the key @ext_ to replace it with the selected file’s extension. This helps in writing generic commands. \nexample:\n     (@s_output@ext_ => '/0/download/output.mp4')\n"),
-  SelectableText(
-      "• You can use @s_ to access additional files from the download folder, which can be useful for adding subtitles or audio to a video file.\n"),
-  SelectableText(
-      "• To keep this process running in the background, go to **Settings > Battery > Battery Optimization**, find this app, and select **Don't optimize**. This prevents the system from stopping the process when the app is not in use."),
+  SelectableText(""),
 ];
-
-String dirPath = "/storage/emulated/0/Download/bookBridge/currentSliced/";
 
 class BookBridge extends StatelessWidget {
   const BookBridge({super.key});
@@ -161,13 +150,6 @@ class _BookBridgeHomeState extends State<BookBridgeHome>
       })
     ];
 
-    // for now directory is not created here
-    // Directory dir = Directory(dirPath);
-    // if (!dir.existsSync()) {
-    //   print("Directory does not exist. Creating it...");
-    //   dir.createSync(recursive: true); // Creates the directory
-    // }
-
     _channel.setMethodCallHandler((call) async {
       if (call.method == "pdfCallback") {
         Map<dynamic, dynamic> data = call.arguments;
@@ -177,8 +159,6 @@ class _BookBridgeHomeState extends State<BookBridgeHome>
         print("Progress: $progress, Status: $status");
       }
     });
-    //create a new thread and make that alive so that we can run pdf operation side by side AND Not freez UI
-    // createNewThread();
   }
 
   void _scrollToBottom() {
@@ -370,162 +350,229 @@ class _BookBridgeHomeState extends State<BookBridgeHome>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          "Book Bridge",
-          style: TextStyle(color: Colors.white),
-        ),
+        title: const Text("Book Bridge"),
         backgroundColor: Colors.blue.shade700,
         centerTitle: true,
       ),
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        // secondThread?.send("Hello from main!");
-                      },
-                      icon: const Icon(Icons.notes),
-                      label: const Text("Command Center"),
-                    ),
-                  ),
-                  const SizedBox(width: 8), // Adds spacing between buttons
-                  Expanded(
-                    child: SwipeButton(
-                      actions: actions,
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 16),
-              const ExpandableContainer(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            /// ---------- Step 1: Select File ----------
+            Card(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              elevation: 4,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: hint,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 16),
-
-                  // Progress Bar & Status
-                  if (isConverting)
-                    Column(
-                      children: [
-                        LinearProgressIndicator(value: progress / 100),
-                        const SizedBox(height: 8),
-                        Text("Progress: $progress%"),
+                  children: [
+                    Row(
+                      children: const [
+                        Icon(Icons.picture_as_pdf, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text("Step 1: Select PDF",
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16)),
                       ],
                     ),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      onPressed: () => showCustomFilePicker(context),
+                      icon: const Icon(Icons.upload_file),
+                      label: const Text("Choose PDF"),
+                    ),
+                    if (selectedFilePath != null) ...[
+                      const SizedBox(height: 8),
+                      Text("Selected: $selectedFilePath",
+                          style: const TextStyle(
+                              fontSize: 14, color: Colors.black87)),
+                    ]
+                  ],
+                ),
+              ),
+            ),
 
-                  const SizedBox(height: 8),
+            const SizedBox(height: 16),
 
-                  // Buttons & Switch in a Row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            /// ---------- Step 2: Split PDF ----------
+            if (selectedFilePath != null)
+              Card(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                elevation: 4,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Start Conversion / Cancel Button
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          // onPressed:
-                          //     isConverting ? cancelConversion : startConversion,
-                          onPressed: isConverting
-                              ? cancelPdfProcess
-                              : processSelectedPdf,
-                          icon: const Icon(Icons.play_circle),
-                          label: isConverting
-                              ? const Text("Cancel")
-                              : const Text("Bundle pdf"),
+                      Row(
+                        children: const [
+                          Icon(Icons.call_split, color: Colors.blue),
+                          SizedBox(width: 8),
+                          Text("Step 2: Split PDF",
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 16)),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton.icon(
+                        onPressed: isConverting
+                            ? cancelPdfProcess
+                            : processSelectedPdf,
+                        icon: Icon(isConverting
+                            ? Icons.cancel
+                            : Icons.play_circle_fill),
+                        label: Text(isConverting ? "Cancel" : "Split PDF"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              isConverting ? Colors.red : Colors.blue,
                         ),
                       ),
-                      const SizedBox(
-                          width: 12), // Adds spacing between elements
+                      if (isConverting) ...[
+                        const SizedBox(height: 12),
+                        LinearProgressIndicator(value: progress / 100),
+                        const SizedBox(height: 6),
+                        Text("Progress: ${progress.toStringAsFixed(0)}%"),
+                      ]
+                    ],
+                  ),
+                ),
+              ),
 
-                      // Events/File Switch (Ensures Text & Switch stay together)
-                      Flexible(
-                        child: Row(
-                          mainAxisAlignment:
-                              MainAxisAlignment.end, // Aligns to the right
-                          children: [
-                            const Text("Event / File"),
-                            const SizedBox(width: 2),
-                            Switch(
-                              value: isSwitched,
-                              activeTrackColor: Colors.blue[100],
-                              activeColor: Colors.blue,
-                              inactiveThumbColor: Colors.green,
-                              onChanged: (value) {
-                                setState(() {
-                                  isSwitched = value;
+            const SizedBox(height: 16),
+
+            /// ---------- Step 3: Upload Translated Parts ----------
+            if (pdfUploadList.isNotEmpty)
+              Card(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                elevation: 4,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: const [
+                          Icon(Icons.upload, color: Colors.orange),
+                          SizedBox(width: 8),
+                          Text("Step 3: Upload Translated PDFs",
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 16)),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: pdfUploadList.length,
+                        separatorBuilder: (_, __) => const Divider(),
+                        itemBuilder: (context, index) {
+                          final item = pdfUploadList[index];
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(Icons.picture_as_pdf,
+                                color: item.isReUploaded
+                                    ? Colors.green
+                                    : Colors.grey),
+                            title: Text("Part ${index + 1}",
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600)),
+                            subtitle: Text(item.originalPath ?? ""),
+                            trailing: ElevatedButton(
+                              onPressed: () {
+                                showCustomFilePicker(context, (path) {
+                                  setState(() {
+                                    if (!item.isReUploaded) uploadedPdfNumber++;
+                                    item.isReUploaded = true;
+                                    item.transulatedPdfUrl = path;
+                                  });
                                 });
                               },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: item.isReUploaded
+                                    ? Colors.green
+                                    : Colors.blue.shade700,
+                              ),
+                              child: Text(
+                                  item.isReUploaded ? "Uploaded" : "Upload"),
                             ),
-                          ],
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            const SizedBox(height: 16),
+
+            /// ---------- Step 4: Merge Back ----------
+            if (uploadedPdfNumber > 0 &&
+                uploadedPdfNumber == pdfUploadList.length)
+              Card(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                elevation: 4,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: const [
+                          Icon(Icons.merge_type, color: Colors.green),
+                          SizedBox(width: 8),
+                          Text("Step 4: Merge Final PDF",
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 16)),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton.icon(
+                        onPressed: combinePdf,
+                        icon: const Icon(Icons.check_circle),
+                        label: const Text("Merge PDFs"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
                         ),
                       ),
                     ],
                   ),
-
-                  const SizedBox(height: 16),
-                ],
-              ), // Red-colored log area
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: _isError ? Colors.red[50] : Colors.blue[50],
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                      color: _isError
-                          ? const Color(0xFFD32F2F)
-                          : Colors.blue.shade700,
-                      width: 1),
                 ),
+              ),
+
+            const SizedBox(height: 20),
+
+            /// ---------- Event / File Logs ----------
+            Card(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              elevation: 3,
+              child: Container(
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Center(
-                      child: Text(
-                        isSwitched
-                            ? "File Information"
-                            : "Current Event Information",
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                        textAlign: TextAlign
-                            .center, // Ensures text alignment inside the widget
-                      ),
+                    SwitchListTile(
+                      value: isSwitched,
+                      title: const Text("Event / File Info"),
+                      onChanged: (value) => setState(() => isSwitched = value),
                     ),
-                    const SizedBox(height: 8),
-                    // Limit the height of the scrollable view
+                    const Divider(),
                     SizedBox(
-                      height: heightOfTxt,
-                      // Adjust the height as needed
+                      height: 120,
                       child: SingleChildScrollView(
                         controller: _scrollController,
-                        scrollDirection: Axis.vertical,
                         child: Text(
                           isSwitched ? SelectedFileInfo : logOutput.toString(),
                           style: TextStyle(
                             fontFamily: "monospace",
-                            fontWeight: FontWeight
-                                .w500, // Medium weight for balanced emphasis
-                            height:
-                                1.4, // Slightly more spacing for multi-line readability
-                            fontSize: 14, // Optimal for log display
-                            letterSpacing: 0.5,
-                            color: _isError
-                                ? Colors.red.shade900
-                                : Colors.blue.shade900,
+                            fontSize: 14,
+                            color: _isError ? Colors.red : Colors.black87,
                           ),
                         ),
                       ),
@@ -533,163 +580,8 @@ class _BookBridgeHomeState extends State<BookBridgeHome>
                   ],
                 ),
               ),
-              const Divider(),
-              if (pdfUploadList.isNotEmpty)
-                SizedBox(
-                  height: 250,
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 10),
-                      const Text(
-                        "Upload PDFs",
-                        style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 10),
-                      Expanded(
-                        child: ListView.separated(
-                          shrinkWrap: true,
-                          itemCount: pdfUploadList.length,
-                          separatorBuilder: (context, index) => const Divider(),
-                          itemBuilder: (context, index) {
-                            print(pdfUploadList[index].transulatedPdfUrl);
-                            print("okkk");
-                            return Card(
-                              elevation: 5,
-                              color: Colors.blue.shade100,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 16, horizontal: 20),
-                                child: ListTile(
-                                  contentPadding: EdgeInsets.zero,
-                                  title: Text(
-                                    '(${index + 1}) ${pdfUploadList[index].originalPath}',
-                                    style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.black),
-                                  ),
-                                  trailing: ElevatedButton(
-                                    onPressed: () {
-                                      showCustomFilePicker(
-                                        context,
-                                        (path) {
-                                          setState(() {
-                                            if (!pdfUploadList[index]
-                                                .isReUploaded) {
-                                              uploadedPdfNumber++;
-                                            }
-
-                                            pdfUploadList[index].isReUploaded =
-                                                true;
-                                            pdfUploadList[index]
-                                                .transulatedPdfUrl = path;
-                                          });
-                                        },
-                                      );
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.blue.shade700,
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 16, vertical: 12),
-                                    ),
-                                    child: Text(
-                                        pdfUploadList[index].isReUploaded
-                                            ? "uploaded"
-                                            : "Upload"),
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Center(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                // onPressed:
-                                //     isConverting ? cancelConversion : startConversion,
-                                onPressed: () {
-                                  setState(() {
-                                    pdfUploadList = [];
-                                    uploadedPdfNumber = 0;
-                                    logOutput.clear();
-                                    isConverting = false;
-                                    progress = 0.0;
-                                  });
-                                },
-                                icon: const Icon(Icons.cancel_outlined),
-                                label: const Text("Cancel Merge"),
-                              ),
-                            ),
-                            const SizedBox(width: 20),
-                            if (uploadedPdfNumber > 0 &&
-                                uploadedPdfNumber == pdfUploadList.length)
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  // onPressed:
-                                  //     isConverting ? cancelConversion : startConversion,
-                                  onPressed: () {
-                                    combinePdf();
-                                  }, // Disables the button when condition is not met
-                                  icon: const Icon(Icons.play_circle),
-                                  label: const Text("Merge"),
-                                ),
-                              ),
-
-                            // ElevatedButton(
-                            //   onPressed: () {
-                            //     // Cancel action logic
-                            //     //cancelCombine();
-                            //   },
-                            //   style: ElevatedButton.styleFrom(
-                            //     backgroundColor: Colors.red.shade500,
-                            //     foregroundColor: Colors.white,
-                            //     padding: const EdgeInsets.symmetric(
-                            //         horizontal: 40, vertical: 16),
-                            //   ),
-                            //   child: const Text(
-                            //     "Cancel Combine",
-                            //     style: TextStyle(
-                            //         fontSize: 12, fontWeight: FontWeight.bold),
-                            //   ),
-                            // ),
-                            // Space between buttons
-                            // ElevatedButton(
-                            //   onPressed: (uploadedPdfNumber > 0 &&
-                            //           uploadedPdfNumber == pdfUploadList.length)
-                            //       ? () {
-                            //           combinePdf();
-                            //         }
-                            //       : null, // Disables the button when condition is not met
-                            //   style: ElevatedButton.styleFrom(
-                            //     backgroundColor: Colors.blue.shade500,
-                            //     foregroundColor: Colors.white,
-                            //     padding: const EdgeInsets.symmetric(
-                            //         horizontal: 50, vertical: 16),
-                            //   ),
-                            //   child: const Text(
-                            //     "Combine",
-                            //     style: TextStyle(
-                            //         fontSize: 12, fontWeight: FontWeight.bold),
-                            //   ),
-                            // ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -901,75 +793,6 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
           ),
         ],
       ),
-    );
-  }
-}
-
-//---------
-class ExpandableContainer extends StatefulWidget {
-  final Widget child;
-
-  const ExpandableContainer({super.key, required this.child});
-
-  @override
-  _ExpandableContainerState createState() => _ExpandableContainerState();
-}
-
-class _ExpandableContainerState extends State<ExpandableContainer>
-    with SingleTickerProviderStateMixin {
-  bool isExpanded = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        GestureDetector(
-          onTap: () {
-            setState(() {
-              isExpanded = !isExpanded;
-            });
-          },
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.blue[100], // Background color
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.blue.shade900),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  "Show Hints",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                ),
-                Icon(
-                  isExpanded
-                      ? Icons.keyboard_arrow_up
-                      : Icons.keyboard_arrow_down,
-                  color: Colors.blue.shade800,
-                ),
-              ],
-            ),
-          ),
-        ),
-        AnimatedSize(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.fastLinearToSlowEaseIn,
-          child: isExpanded
-              ? Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.blue[50], // Slightly lighter shade
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: widget.child, // Static text or any content
-                )
-              : const SizedBox(), // Takes no space when collapsed
-        ),
-      ],
     );
   }
 }
