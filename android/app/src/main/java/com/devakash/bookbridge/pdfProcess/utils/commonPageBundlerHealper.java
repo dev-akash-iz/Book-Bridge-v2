@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class commonPageBundlerHealper {
-	private String fileName ;
+	private Location location;
 	PDDocument successfulPdfBundle = createNewPdf();
 	int successfulPageCount = -1;
 	int currentBundleNumber = 0;
@@ -22,8 +22,8 @@ public class commonPageBundlerHealper {
 	int failedPageCount = -1;
 	List<PdfPageBundleInfo> pageBundleInfoList ;
 
-	public commonPageBundlerHealper(String fileName,int pageLength) {
-		this.fileName = fileName;
+	public commonPageBundlerHealper(Location location , int pageLength) {
+		this.location = location;
 		this.pageBundleInfoList = new ArrayList<>(pageLength+1);
 	}
 
@@ -57,9 +57,9 @@ public class commonPageBundlerHealper {
 
 	public void saveCurrentValidPdfBundle(){
 		boolean saved=false;
-		if(successfulPageCount>-1){
-			File file =  PdfGlobalStore.savePdfToDisk(successfulPdfBundle,"pdf_bundle_"+currentBundleNumber+"_"+fileName);
-		    if(file!=null){
+		if(successfulPageCount > -1){
+			File file =  PdfGlobalStore.savePdfToDisk(successfulPdfBundle,location.splitted, currentBundleNumber + ".pdf");
+		    if(file != null){
 				successfulPdfPaths.add(file.getAbsolutePath());
 				// after save i need to clear old bundle and add new bundle to update next all page in new bundle
 				successfulPdfBundle = createNewPdf(); // passed new bundle refrence so new page all add in this
@@ -73,17 +73,15 @@ public class commonPageBundlerHealper {
 				currentBundleNumber++; // increase the bundle number next save is now addtional or previos number
 				// doing this in case of saving issue skip this bundle and move for next bundle;
 			}
-		}else {
-
 		}
 //		return saved;
 	}
 
 	public void saveInValidPdfBundle(){
 		if(failedPageCount>-1){
-			File file =  PdfGlobalStore.savePdfToDisk(failedPdfBundle,"failed_pdf_bundle_"+fileName);
+			File file =  PdfGlobalStore.savePdfToDisk(failedPdfBundle, location.failed, "0.pdf");
 			if(file!=null){
-				failedPdfPaths =file.getAbsolutePath();
+				failedPdfPaths = file.getAbsolutePath();
 			}else {
 				failedPdfPaths=null;
 			}
@@ -94,7 +92,7 @@ public class commonPageBundlerHealper {
 	}
 
 	public DetailedDataOFprocessedPDF getFinalFullPDFDetail(){
-		return  new DetailedDataOFprocessedPDF(successfulPdfPaths,failedPdfPaths,"",pageBundleInfoList);
+		return  new DetailedDataOFprocessedPDF(successfulPdfPaths,failedPdfPaths,"",pageBundleInfoList,location);
 	}
 
 	public int getSuccessfulPageCount() {

@@ -161,11 +161,13 @@ class _BookBridgeHomeState extends State<BookBridgeHome>
       })
     ];
 
-    Directory dir = Directory(dirPath);
-    if (!dir.existsSync()) {
-      print("Directory does not exist. Creating it...");
-      dir.createSync(recursive: true); // Creates the directory
-    }
+    // for now directory is not created here
+    // Directory dir = Directory(dirPath);
+    // if (!dir.existsSync()) {
+    //   print("Directory does not exist. Creating it...");
+    //   dir.createSync(recursive: true); // Creates the directory
+    // }
+
     _channel.setMethodCallHandler((call) async {
       if (call.method == "pdfCallback") {
         Map<dynamic, dynamic> data = call.arguments;

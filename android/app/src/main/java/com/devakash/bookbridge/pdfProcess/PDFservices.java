@@ -1,7 +1,7 @@
 package com.devakash.bookbridge.pdfProcess;
 
 import android.graphics.pdf.PdfDocument;
-
+import com.devakash.bookbridge.pdfProcess.utils.Location;
 import com.devakash.bookbridge.pdfProcess.utils.CommonProgressData;
 import com.devakash.bookbridge.pdfProcess.utils.DetailedDataOFprocessedPDF;
 import com.devakash.bookbridge.pdfProcess.utils.PageOperationOutcome;
@@ -34,14 +34,17 @@ public class PDFservices {
 		executor.submit(() -> {
 			try {
 				Runtime.getRuntime().gc();
-				//boolean processResult = splitPDFpagesToBundleHelperSync(path);
-				String res=PdfGlobalStore.SplitPdf( path , "/storage/emulated/0/Download/BookBridge");
+				Location loc = PdfGlobalStore.settingUpFolder(path);
+
+				boolean processResult = splitPDFpagesToBundleHelperSync(loc);
+				//	String res = PdfGlobalStore.SplitPdf( path , "/storage/emulated/0/Download/BookBridge");
+				String res = PdfGlobalStore.getMessage();
 				PdfGlobalStore.RunOnUiThread(()->{
 					Map<String, Object> data = new HashMap<>(3);
-					if(PdfGlobalStore.detailedDataOFprocessedPDF!=null){
+					if(PdfGlobalStore.detailedDataOFprocessedPDF != null){
 						data.put("result", PdfGlobalStore.detailedDataOFprocessedPDF.getSuccesFullBundledUrl());
 					}
-					data.put("status", true);
+					data.put("status", processResult);
 					result.success(data);
 				});
 				// PDF processing logic here
@@ -131,7 +134,7 @@ public class PDFservices {
 		}
 	}
 	public static boolean combinePdfBundlesToSinglePdfHealperSync(List<String> transulatedpath) {
-		if(PdfGlobalStore.detailedDataOFprocessedPDF==null){
+		if(PdfGlobalStore.detailedDataOFprocessedPDF == null){
 			return false;
 		}
 		DetailedDataOFprocessedPDF combinedetail = PdfGlobalStore.detailedDataOFprocessedPDF;
@@ -182,7 +185,7 @@ public class PDFservices {
 		//loadPdfFromCache();
 		progressCallbackToDart(progress.updateOtherPdfProgress(55), "Initializing pdf from given path");
 
-		File file =  PdfGlobalStore.savePdfToDisk(finalOutPut,"Combined_"+"example.pdf");
+		File file =  PdfGlobalStore.savePdfToDisk(finalOutPut,combinedetail.getLocation().finalTranslated, combinedetail.getLocation().fileNameWithoutExt + ".pdf");
 		for (PDDocument cleanupPdfobject: transulatedPdfCacheStorage) {
 			close(cleanupPdfobject);
 		}
@@ -194,16 +197,12 @@ public class PDFservices {
 		return true;
 	}
 
-	public static boolean splitPDFpagesToBundleHelperSync(String path) {
-		File file = new File(path);
-        String dir = file.getParent();
-		String fileName = file.getName();
-
+	public static boolean splitPDFpagesToBundleHelperSync(Location loc) {
 		progressCallbackToDart(5, "Initializing pdf from given path");
 
 		if(checkForCancel(null)) return false; //check for cancel signal,
 
-		PDDocument document = loadPdf(file);
+		PDDocument document = loadPdf(loc.sourceFile);
 
 		if(checkForCancel(document)) return false; //check for cancel signal,
 
@@ -227,7 +226,7 @@ public class PDFservices {
 		 *  intalise the needed things for storing pdf datas
 		 */
 
-		commonPageBundlerHealper bundlerHealper =new commonPageBundlerHealper(fileName,OriginalPages.getCount());
+		commonPageBundlerHealper bundlerHealper = new commonPageBundlerHealper(loc , OriginalPages.getCount());
 
 //		PDDocument succesFullpagePdfBundle = newPDF();
 //		short currentPDFBundleNo=0;
@@ -247,7 +246,7 @@ public class PDFservices {
 			String type = PdfGlobalStore.getMessage();
 		    System.out.println(PdfGlobalStore.getCurrentAbi());
 			long startTime = System.nanoTime(); // More precise timing
-System.out.println(PdfGlobalStore.pdfiumPath);
+            System.out.println(PdfGlobalStore.pdfiumPath);
 			PDPage originalPage = OriginalPages.get(i);
 			if(checkForCancel(document)) return false; //check for cancel signal,
 

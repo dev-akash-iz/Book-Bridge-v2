@@ -25,12 +25,13 @@ public class MethodResolver implements MethodChannel.MethodCallHandler {
 		switch (call.method) {
 			case "processPdf":
                
-			   System.out.println(PdfGlobalStore.getAppPrivateDir("BookBridge"));
+			    System.out.println(PdfGlobalStore.getAppPrivateDir("BookBridge"));
 				PdfGlobalStore.clearCurrentLoadedPdf(); 
 				PDFservices.splitPDFpagesToBundle((String) call.arguments,result);
 				break;
 			case "isRequestedForCancel":
-
+                
+				//PdfGlobalStore.CancelNative();
 				PdfGlobalStore.isRequestedForCancel=true;
 				PdfGlobalStore.Methodresult = result;
 				break;

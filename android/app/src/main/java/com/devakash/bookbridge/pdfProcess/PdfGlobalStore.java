@@ -12,9 +12,10 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import android.content.Context;               
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
-
-
+import com.devakash.bookbridge.pdfProcess.utils.Location;
 import io.flutter.plugin.common.EventChannel;
 import io.flutter.plugin.common.MethodChannel;
 
@@ -53,7 +54,13 @@ public class PdfGlobalStore {
 
 	public static native void loadPdfiumBinary(String path);
 
+    /***
+	 * this is native funtion to split -> rust lib -> c++ pdfium
+	 */
 	public static native String SplitPdf(String srcPath,String savePath);
+
+	public static native boolean CancelNative();
+	
 
 
 
@@ -144,19 +151,19 @@ public class PdfGlobalStore {
 
 	}
 
-	public static File savePdfToDisk(PDDocument pdfDocument, String name) {
+	public static File savePdfToDisk(PDDocument pdfDocument,String location, String name) {
 		File file = null;
 		boolean isSaved=false;
 		try {
 			// Get internal storage directory (Android Context required)
-			File dir = new File("/storage/emulated/0/Download/","BookBridge");
-			if (!dir.exists()) dir.mkdirs(); // Create folder if it doesn't exist
+			// File dir = new File("/storage/emulated/0/Download/BookBridge");
+			// if (!dir.exists()) dir.mkdirs(); // Create folder if it doesn't exist
 
 			// Define file location
-			file = new File(dir, name);
+			file = new File(location, name);
 			// Save PDF document
 			pdfDocument.save(file);
-			isSaved=true;
+			isSaved = true;
 			close(pdfDocument); // Close document after saving
 			System.out.println("PDF saved at: " + file.getAbsolutePath());
 
@@ -180,6 +187,60 @@ public class PdfGlobalStore {
 			System.out.println("called gc");
 		} catch (Exception e) {
 
+		}
+	}
+
+	public static String  createFolderViaDate() {
+		// yyyy-MM-dd for sortable date
+		// hh-mm for 12-hour clock
+		// a for AM/PM marker
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd__hh-mm_a");
+		return sdf.format(new Date());
+	}
+
+	public static Location settingUpFolder(String path) {
+		try {
+			File file = new File(path);
+			String fileName = file.getName();  // e.g. "document.pdf"
+
+			// Remove extension safely
+			int dotIndex = fileName.lastIndexOf('.');
+			String nameWithoutExt = (dotIndex == -1) ? fileName : fileName.substring(0, dotIndex);
+
+			Location loc = new Location();
+			loc.sourceFile = file;
+			loc.fileName = fileName;
+			loc.fileNameWithoutExt = nameWithoutExt;
+
+			// Root folder → e.g. /Download/bookBridge/document/2025-09-04__10-10_AM
+			String dirPath = "/storage/emulated/0/Download/bookBridge/"
+					+ loc.fileNameWithoutExt + "/" + createFolderViaDate();
+			loc.rootFolder = dirPath;
+
+			// Create root
+			File dir = new File(loc.rootFolder);
+			if (!dir.exists()) dir.mkdirs();
+
+			// Create Failed folder
+			loc.failed = loc.rootFolder + "/Failed";
+			dir = new File(loc.failed);
+			if (!dir.exists()) dir.mkdirs();
+
+			// Create Splitted folder
+			loc.splitted = loc.rootFolder + "/Splitted";
+			dir = new File(loc.splitted);
+			if (!dir.exists()) dir.mkdirs();
+
+			// Create FinalTranslated folder (fixed from overwritten `splitted`)
+			loc.finalTranslated = loc.rootFolder + "/FinalTranslated";
+			dir = new File(loc.finalTranslated);
+			if (!dir.exists()) dir.mkdirs();
+
+			return loc;
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
 		}
 	}
 
